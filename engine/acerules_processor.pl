@@ -14,7 +14,7 @@
 
 
 :- module(acerules_processor, [
-		generate_output/7,  % +Input, +Semantics, +Options, -Rules, -Answersets, -Trace, -AnswerTexts
+        generate_output/8,  % +Input, +Semantics, +Options, -Rules, -Answersets, -Trace, -AnswerTexts, -AnswerPNF
 		generate_rules/3,   % +Input, +Options, -Rules
 		verbalize_trace/2   % +Trace, -VerbTrace
 	]).
@@ -43,7 +43,7 @@ for input and output.
 */
 
 
-%% generate_output(+Input, +Semantics, +Options, -Rules, -Answersets, -Trace, -AnswerTexts) is det
+%% generate_output(+Input, +Semantics, +Options, -Rules, -Answersets, -Trace, -AnswerTexts, -AnswerPNF) is det
 %
 % Generates the answer set(s) and answer text(s) for the AceRules program.
 %
@@ -60,15 +60,15 @@ for input and output.
 % @param AnswerTexts Returns a list of answers in ACE format. The elements correspond to the elements of the
 %   parameter Answersets.
 
-generate_output(InputCodes, Semantics, Options, Rules, Answersets, Trace, AnswerTexts) :-
+generate_output(InputCodes, Semantics, Options, Rules, Answersets, Trace, AnswerTexts, AnswerPnf) :-
 	catch(
-		generate_output_x(InputCodes, Semantics, Options, Rules, Answersets, Trace, AnswerTexts),
+		generate_output_x(InputCodes, Semantics, Options, Rules, Answersets, Trace, AnswerTexts, AnswerPnf),
 		ar_error(ErrorCode, ErrorText),
 		( log(ErrorCode), throw(error(ErrorCode, ErrorText)) )
 	),
 	!.
 
-generate_output(_, _, _, '', '', '', '') :-
+generate_output(_, _, _, '', '', '', '', '') :-
     last_log_message(LogText),
     atom_concat(LogText, '.Unexpected', ErrorCode),
     concat_list(['Unexpected error in ', LogText, '.'], ErrorText),
@@ -76,23 +76,23 @@ generate_output(_, _, _, '', '', '', '') :-
     throw(error(ErrorCode, ErrorText)).
 
 
-%% generate_output_x(+InputCodes, +Semantics, +Options, -Rules, -Answersets, -Trace, -AnswerTexts) is det
+%% generate_output_x(+InputCodes, +Semantics, +Options, -Rules, -Answersets, -Trace, -AnswerTexts, -AnswerPnf) is det
 
-generate_output_x(InputCodes, court, Options, Rules, [Answerset], Trace, [AnswerText]) :-
+generate_output_x(InputCodes, court, Options, Rules, [Answerset], Trace, [AnswerText], [AnswerPnf]) :-
 	reset_skolemizer,
 	( member(guess=Guess, Options) ; Guess = off ), !,
 	parse(InputCodes, Rules, Guess), !,
 	court_interpreter(Rules, Answerset, Trace), !,
-	verbalize(Answerset, AnswerText), !.
+	verbalize(Answerset, AnswerText, AnswerPnf), !.
 
-generate_output_x(InputCodes, Semantics, Options, Rules, Answersets, [], AnswerTexts) :-
+generate_output_x(InputCodes, Semantics, Options, Rules, Answersets, [], AnswerTexts, AnswerPnfList) :-
     is_member(Semantics, [stable, stable_strong]),
 	reset_skolemizer,
 	( member(guess=Guess, Options) ; Guess = off ), !,
 	parse(InputCodes, Rules, Guess), !,
 	( member(maxanswers=MaxAnswers, Options) ; MaxAnswers = 1 ), !,
 	stable_interpreter(Rules, Semantics, Answersets, MaxAnswers), !,
-	verbalize_list(Answersets, AnswerTexts), !.
+	verbalize_list(Answersets, AnswerTexts, AnswerPnfList), !.
 
 
 %% generate_rules(+Input, +Options, -Rules) is det
@@ -129,11 +129,11 @@ generate_rules_x(InputCodes, Options, Rules) :-
 
 %% verbalize_list(+InputList, -VerbalizationList) is det
 
-verbalize_list([], []).
+verbalize_list([], [], []).
 
-verbalize_list([Answerset|AnswersetsRest], [AnswerText|AnswertextsRest]) :-
-    verbalize(Answerset, AnswerText),
-    verbalize_list(AnswersetsRest, AnswertextsRest).
+verbalize_list([Answerset|AnswersetsRest], [AnswerText|AnswertextsRest], [AnswerPnf|AnswerPnfRest]) :-
+    verbalize(Answerset, AnswerText, AnswerPnf),
+    verbalize_list(AnswersetsRest, AnswertextsRest, AnswerPnfRest).
 
 
 %% verbalize_trace(+Trace, -VerbalizedTrace) is det
@@ -180,11 +180,11 @@ verbalize_trace(_, Step, LastStep, _) :-
 verbalize_trace(Trace, Step, LastStep, VerbTrace) :-
     member(raw(Step, Raw), Trace),
     clean_factset(Raw, RawF),
-    verbalize(RawF, RawText),
+    verbalize(RawF, RawText, _),
     member(raw(Step, RawText), VerbTrace), !,
     member(consistent(Step, Consistent), Trace),
     clean_factset(Consistent, ConsistentF),
-    verbalize(ConsistentF, ConsistentText),
+    verbalize(ConsistentF, ConsistentText, _),
     member(consistent(Step, ConsistentText), VerbTrace), !,
     NextStep is Step + 1,
     verbalize_trace(Trace, NextStep, LastStep, VerbTrace).

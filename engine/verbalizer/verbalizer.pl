@@ -14,8 +14,8 @@
 
 
 :- module(verbalizer, [
-		verbalize/2  % +Factset, -Text
-	]).
+        verbalize/3  % +Factset, -Text, -PNF
+   ]).
 
 :- style_check(-singleton).
 :- style_check(-discontiguous).
@@ -61,11 +61,11 @@ any_sequence_of_any_sequences([H|T]) --> any_sequence(H), any_sequence_of_any_se
 concatenation(ListOfLists, Concatenation) :-
     phrase(any_sequence_of_any_sequences(ListOfLists), Concatenation).
 
-%% verbalize(+Factset, -Text)
+%% verbalize(+Factset, -Text, -PNF)
 %
 % Translates an answer set (Factset) into an ACE text (Text).
 
-verbalize(Factset, Text) :-
+verbalize(Factset, Text, PNF) :-
 	log('verbalizer.start'),
 	% --- STEP 1 ---
 	% Remove unused proper names.
@@ -99,6 +99,6 @@ verbalize(Factset, Text) :-
     concatenation(TextPre1, TextPre2),
     atomic_list_concat(TextPre2, '\n', Text),
     drs_pnf(DRS4, PNF),
-    term_string(pnf(PNF), PNFString),
-    log(PNFString),
+   %term_string(pnf(PNF), PNFString),
+   %log(PNFString),
 	log('verbalizer.finished').
