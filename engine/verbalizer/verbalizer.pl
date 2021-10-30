@@ -21,6 +21,7 @@
 :- style_check(-discontiguous).
 :- use_module(ape('parser/tokenizer')).
 :- use_module(ape('utils/drs_to_coreace')).
+:- use_module(ape('utils/drs_to_fol_to_prenex')).
 :- style_check(+singleton).
 :- style_check(+discontiguous).
 :- use_module('../skolemizer/skolemizer').
@@ -50,6 +51,15 @@ to be performed.
 @version 2008-11-24
 */
 
+
+any_sequence([]) --> [].
+any_sequence([H|T]) --> [H], any_sequence(T).
+
+any_sequence_of_any_sequences([]) --> [].
+any_sequence_of_any_sequences([H|T]) --> any_sequence(H), any_sequence_of_any_sequences(T).
+
+concatenation(ListOfLists, Concatenation) :-
+    phrase(any_sequence_of_any_sequences(ListOfLists), Concatenation).
 
 %% verbalize(+Factset, -Text)
 %
@@ -85,7 +95,10 @@ verbalize(Factset, Text) :-
 	% Using the private auxiliary predicate, because the public predicate is not usable in reverse direction.
 	% This creates a "typed" representation where the type arguments are variables. The verbalizer is buggy for
 	% untyped DRSs.
-	drs_to_coreace(DRS4, TextPre1),
-	concat_atom(TextPre1, '\n', TextPre2),
-	atom_concat(TextPre2, '\n', Text),
+	bigdrs_to_coreace(DRS4, TextPre1),
+    concatenation(TextPre1, TextPre2),
+    atomic_list_concat(TextPre2, '\n', Text),
+    drs_pnf(DRS4, PNF),
+    term_string(pnf(PNF), PNFString),
+    log(PNFString),
 	log('verbalizer.finished').

@@ -55,12 +55,12 @@ get_stable_models(SmRules, Mode, Models, MaxModels) :-
     MaxModels > 0,
     new_memory_file(MemHandle),
     open_memory_file(MemHandle, write, S),
-    write(S, '( echo ""; '),
+    write(S, 'c:/cygwin64/bin/bash -c \'( echo; '),
     echo_rules_command(SmRules, Mode, S),
     (Mode = stable_strong ->
-    	format(S, ' ) | lparse --true-negation | smodels ~w | stable_interpreter/postsmod', [MaxModels])
+    	format(S, ' ) | lparse --true-negation | smodels ~w | stable_interpreter/postsmod\'', [MaxModels])
     ;
-    	format(S, ' ) | lparse | smodels ~w | stable_interpreter/postsmod', [MaxModels])
+    	format(S, ' ) | lparse | smodels ~w | stable_interpreter/postsmod\'', [MaxModels])
     ),
     close(S),
     memory_file_to_atom(MemHandle, Command),
