@@ -19,6 +19,7 @@
 
 :- use_module('../op_defs').
 :- use_module('../list_utils').
+:- use_module('../logger').
 
 /** <module> Stable model generator
 
@@ -58,15 +59,17 @@ get_stable_models(SmRules, Mode, Models, MaxModels) :-
     write(S, 'c:/cygwin64/bin/bash -c \'( echo; '),
     echo_rules_command(SmRules, Mode, S),
     (Mode = stable_strong ->
-    	format(S, ' ) | lparse --true-negation | smodels ~w | stable_interpreter/postsmod\'', [MaxModels])
+    	format(S, ' ) | lparse --true-negation | smodels ~w | AceRules/engine/stable_interpreter/postsmod\'', [MaxModels])
     ;
-    	format(S, ' ) | lparse | smodels ~w | stable_interpreter/postsmod\'', [MaxModels])
+    	format(S, ' ) | lparse | smodels ~w | AceRules/engine/stable_interpreter/postsmod\'', [MaxModels])
     ),
     close(S),
     memory_file_to_atom(MemHandle, Command),
     open(pipe(Command), read, P),
     get_models(P, Models),
     close(P),
+    length(Models, NumberOfModels),
+    log(number_of_models(NumberOfModels)),
     ( Models == [] ->
     	throw(ar_error('stable-interpreter.get-stable-model.NoModel', 'Program has no answer.'))
     ;
